@@ -1,0 +1,128 @@
+comment: "Neutral and Ionizable Lipids with Explicit NaCl."
+temperature: 298
+random: {seed: hardware}
+geometry: {type: cuboid, length: [85, 85, 212.5]}
+mcloop: {macro: 10, micro: 20000.0}
+
+atomlist:
+    - TL:  {sigma: 9, eps: 2.252473636363636, dp: 2, alphax: -20}
+    - HD:  {sigma: 8.549999999999999, eps: 2.252473636363636, dp: 2, alphax: -11}
+    - AM:  {sigma: 3.6, eps: 2.252473636363636, dp: 2}
+    - HAM: {sigma: 3.6, eps: 2.252473636363636, dp: 2, q: 1}
+    - NA:  {sigma: 4.6, eps: 0.01, dp: 30, q: 1}
+    - CL:  {sigma: 4.6, eps: 0.01, dp: 30, q: -1}
+    - H:   {pactivity: 4, implicit: True}
+
+moleculelist:
+    - Na: {atoms: [NA], atomic: True, activity: 0.112}
+    - Cl: {atoms: [CL], atomic: True, activity: 0.112}
+    - lipid3b:
+        structure:
+            - HD: [0,0,0]
+            - TL: [0,0,9]
+            - TL: [0,0,18]
+        bondlist:
+            - fene:     {index: [0,1], k: 0.8342494949494949, rmax: 13.5, sigma: 9, eps: 2.252473636363636}
+            - fene:     {index: [1,2], k: 0.8342494949494949, rmax: 13.5, sigma: 9, eps: 2.252473636363636}
+            - harmonic: {index: [0,2], k: 0.27808316498316493, req: 36}
+    - lipid4b:
+        structure:
+            - AM: [0,0,0]
+            - HD: [0,0,5]
+            - TL: [0,0,14]
+            - TL: [0,0,23]
+        bondlist:
+            - fene:     {index: [0,1], k: 1.8770613636363633, rmax: 9.0, sigma: 6, eps: 2.252473636363636}
+            - fene:     {index: [1,2], k: 0.8342494949494949, rmax: 13.5, sigma: 9, eps: 2.252473636363636}
+            - fene:     {index: [2,3], k: 0.8342494949494949, rmax: 13.5, sigma: 9, eps: 2.252473636363636}
+            - harmonic: {index: [0,2], k: 0.6256871212121211, req: 24}
+            - harmonic: {index: [1,3], k: 0.27808316498316493, req: 36}
+
+insertmolecules:
+    - Na: {N: 400, inactive: True}
+    - Cl: {N: 400, inactive: True}
+    - lipid3b: {N: 15.0}
+    - lipid4b: {N: 135.0}
+
+energy:
+    - bonded: {}
+    - nonbonded:
+        to_disk: true
+        default:
+            - wca:
+                mixing: LB
+            - custom: 
+                function: lB * q1 * q2 * ( 1.0 / r - 1.0 / rc ) 
+                constants:
+                    lB: 7.145030076094871
+                    rc: 510
+                cutoff: 510
+        TL TL:
+            - wca:
+                mixing: LB
+                custom:
+                    TL TL: {sigma: 9, eps: 2.252473636363636}
+            - cos2: {rc: 10.102158000000001, eps: 2.252473636363636, wc: 16.2}
+        HD TL:
+            - wca:
+                mixing: LB
+                custom:
+                    HD TL: {sigma: 9, eps: 2.252473636363636}
+        HD HD:
+            - wca:
+                mixing: LB
+                custom:
+                    HD HD: {sigma: 8.549999999999999, eps: 2.252473636363636}
+        NA HD:
+            - wca:
+                mixing: LB
+            - polar: {epsr: 78.47995215311005}
+        NA TL:
+            - wca:
+                mixing: LB
+            - polar: {epsr: 78.47995215311005}
+        CL HD:
+            - wca:
+                mixing: LB
+            - polar: {epsr: 78.47995215311005}
+        CL TL:
+            - wca:
+                mixing: LB
+            - polar: {epsr: 78.47995215311005}
+                    
+reactionlist:
+    - "HAM = AM + Na + H": {pK: 8}
+    - "HAM + Cl = AM + H": {pK: 8}
+    - "= Na + Cl": {}
+
+moves:
+    - rcmc: {repeat: 200}
+    - moltransrot: {molecule: lipid3b, dp: 1.0, dprot: 0.5, repeat: 15.0}
+    - transrot: {molecule: lipid3b, repeat: 15.0}
+    - moltransrot: {molecule: lipid4b, dp: 1.0, dprot: 0.5, repeat: 135.0}
+    - transrot: {molecule: lipid4b, repeat: 135.0}
+    - transrot: {molecule: Na, repeat: 200}
+    - transrot: {molecule: Cl, repeat: 200}
+    - volume: {dV: 0.02, method: isochoric, repeat: 1}
+        
+analysis:
+    - savestate: {file: state_4.json}
+    - savestate: {file: confout_4.pqr}
+    - savestate: {file: confout_4.gro}
+    - xtcfile: {file: traj_4.xtc, nstep: 3e3}
+    - qrfile: {file: qrtraj_4.dat, nstep: 3e3}
+    - systemenergy: {file: energy_4.dat, nstep: 1e3}
+    - reactioncoordinate: {file: N_4.dat, nstep: 1e2, type: system, property: N}
+    - reactioncoordinate: {file: NNa_4.dat, nstep: 1e2, type: molecule, property: N, index: 0}
+    - reactioncoordinate: {file: NCl_4.dat, nstep: 1e2, type: molecule, property: N, index: 1}
+    - reactioncoordinate: {file: Lx_4.dat, nstep: 1e2, type: system, property: Lx}
+    - sliceddensity: {file: Na_4.dat, nstep: 1e2, atoms: [NA], dz: 0.5, nskip: 6e4, atomcom: TL}
+    - sliceddensity: {file: Cl_4.dat, nstep: 1e2, atoms: [CL], dz: 0.5, nskip: 6e4, atomcom: TL}
+    - sliceddensity: {file: HD_4.dat, nstep: 1e2, atoms: [HD], dz: 0.5, nskip: 6e4, atomcom: TL}
+    - sliceddensity: {file: TL_4.dat, nstep: 1e2, atoms: [TL], dz: 0.5, nskip: 6e4, atomcom: TL}
+    - sliceddensity: {file: AM_4.dat, nstep: 1e2, atoms: [AM], dz: 0.5, nskip: 6e4, atomcom: TL}
+    - sliceddensity: {file: HAM_4.dat, nstep: 1e2, atoms: [HAM], dz: 0.5, nskip: 6e4, atomcom: TL}
+    - density: {nstep: 1e2, nskip: 6e4}
+    - chargefluctuations: {nstep: 1e2, nskip: 6e4, molecule: lipid4b}
+    - atomrdf: {file: rdf_4.dat, nstep: 1e2, dr: 0.5, name1: HAM, name2: HAM, nskip: 6e4, dim: 2, slicedir: [0,0,1], thickness: 30} 
+    - sanity: {nstep: 1e3}
